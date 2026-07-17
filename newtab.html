@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>无标题文档</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="menubar">
+    <span class="doc-title" id="docTitle" contenteditable="true" spellcheck="false">无标题文档</span>
+    <div class="menubar-right">
+      <span class="status" id="status"></span>
+      <button class="dots" id="dotsBtn" title="设置" aria-label="设置">⋯</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span class="fake-item">文件</span>
+    <span class="fake-item">编辑</span>
+    <span class="fake-item">查看</span>
+    <span class="fake-item">插入</span>
+    <span class="fake-item">格式</span>
+    <span class="fake-item">工具</span>
+  </div>
+
+  <div class="page-wrap">
+    <div class="page" id="page">
+      <div class="editor editor-layer active" id="editor" contenteditable="true" spellcheck="false"
+           data-placeholder="开始输入…&#10;&#10;提示：单独一行以 &gt; 开头并按 Ctrl/Cmd + Enter，即可生成内容。"></div>
+      <div class="editor decoy-editor editor-layer" id="decoyEditor" contenteditable="true" spellcheck="false"></div>
+    </div>
+  </div>
+
+  <!-- Settings panel, hidden by default -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-panel">
+      <div class="settings-row">
+        <label>模型</label>
+        <select id="providerSelect">
+          <option value="anthropic">Claude (Anthropic)</option>
+          <option value="openai">OpenAI</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" />
+      </div>
+      <div class="settings-row">
+        <label>模型名称</label>
+        <input type="text" id="modelNameInput" placeholder="claude-sonnet-4-6" />
+      </div>
+      <div class="settings-hint">Key 仅保存在本地浏览器（chrome.storage.local），不会上传到任何服务器。</div>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-row">
+        <label>Panic Mode 快捷键</label>
+        <div class="settings-hint" style="margin-bottom:0;">
+          默认 <code>Ctrl/Cmd+Shift+Space</code>，可在
+          <a href="#" id="openShortcutsLink">chrome://extensions/shortcuts</a> 中修改。
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>伪装内容（触发 Panic Mode 后显示的文字）</label>
+        <textarea id="decoyTextInput" rows="4" placeholder="留空则使用默认占位文档"></textarea>
+      </div>
+      <div class="settings-row checkbox-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="autoArmToggle" />
+          切换到其他标签页时自动触发 Panic Mode
+        </label>
+      </div>
+
+      <div class="settings-actions">
+        <button id="saveSettings">保存</button>
+        <button id="closeSettings" class="secondary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

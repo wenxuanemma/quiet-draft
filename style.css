@@ -1,0 +1,295 @@
+:root {
+  --paper: #FDFCFA;
+  --canvas: #F1EFEA;
+  --ink: #2B2926;
+  --ink-faint: #8A8578;
+  --rule: #E8E5DF;
+  --rule-strong: #DAD6CE;
+  --accent: #6B6558;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+/* ---------- Menubar (mimics a doc app's top bar) ---------- */
+.menubar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px 4px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.doc-title {
+  font-size: 18px;
+  font-weight: 400;
+  outline: none;
+  padding: 4px 6px;
+  border-radius: 3px;
+  min-width: 40px;
+}
+
+.doc-title:hover,
+.doc-title:focus {
+  background: var(--canvas);
+}
+
+.menubar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status {
+  font-size: 12px;
+  color: var(--ink-faint);
+  min-height: 14px;
+}
+
+.dots {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.dots:hover {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+/* ---------- Fake toolbar row for visual authenticity ---------- */
+.toolbar {
+  display: flex;
+  gap: 18px;
+  padding: 4px 24px 10px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--ink-faint);
+  user-select: none;
+}
+
+.fake-item {
+  cursor: default;
+  padding: 2px 2px;
+}
+
+.fake-item:hover {
+  color: var(--ink);
+}
+
+/* ---------- Page ---------- */
+.page-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px 120px;
+}
+
+.page {
+  width: 100%;
+  max-width: 720px;
+  min-height: 960px;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+  padding: 96px 88px;
+  border-radius: 2px;
+  display: grid;
+}
+
+.editor {
+  font-family: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--ink);
+  outline: none;
+  min-height: 700px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.editor-layer {
+  grid-column: 1;
+  grid-row: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.editor-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editor:empty::before {
+  content: attr(data-placeholder);
+  color: #B8B3A8;
+}
+
+.editor .gen-block {
+  display: block;
+}
+
+.editor .prompt-line {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.editor .gen-pending {
+  color: var(--ink-faint);
+}
+
+.editor .gen-pending::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+}
+
+/* ---------- Settings overlay ---------- */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 41, 38, 0.25);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.settings-overlay.open {
+  display: flex;
+}
+
+.settings-panel {
+  background: var(--paper);
+  border-radius: 6px;
+  padding: 24px 28px;
+  width: 340px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.settings-row {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-row label {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.settings-row input,
+.settings-row select {
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.settings-row input:focus,
+.settings-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.settings-actions button {
+  font-size: 13px;
+  padding: 7px 16px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.settings-actions button.secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule-strong);
+}
+
+@media (max-width: 640px) {
+  .page { padding: 48px 28px; }
+  .menubar, .toolbar { padding-left: 16px; padding-right: 16px; }
+}
+
+/* ---------- Panic mode ---------- */
+.decoy-editor {
+  /* Same visual treatment as .editor — indistinguishable at a glance */
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--rule);
+  margin: 4px 0 18px;
+}
+
+.settings-row textarea {
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  resize: vertical;
+}
+
+.settings-row textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.settings-row a {
+  color: var(--accent);
+}
