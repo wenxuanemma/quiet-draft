@@ -9,7 +9,23 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://api.anthropic.com/*",
-    "https://api.openai.com/*"
+    "https://api.openai.com/*",
+    "https://claude.ai/*"
+  ],
+  "action": {
+    "default_title": "Toggle document disguise on this page",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["claude-overlay.js"],
+      "run_at": "document_start"
+    }
   ],
   "commands": {
     "toggle-panic": {

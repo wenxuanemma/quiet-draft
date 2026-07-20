@@ -10,3 +10,20 @@ chrome.commands.onCommand.addListener(async (command) => {
   const { panicActive } = await chrome.storage.local.get('panicActive');
   await chrome.storage.local.set({ panicActive: !panicActive });
 });
+
+// Clicking the toolbar icon on a claude.ai tab toggles the document
+// overlay for that specific tab. We key state by tab id (not global)
+// since you likely want the overlay off in other tabs/windows even
+// while it's on in one claude.ai conversation.
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab.url || !tab.url.startsWith('https://claude.ai/')) return;
+  if (!tab.id) return;
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'QD_TOGGLE_OVERLAY' });
+  } catch (err) {
+    // Content script may not be injected yet (e.g. page just loaded);
+    // nothing to do — user can click again once the page is ready.
+    console.warn('Quiet Draft: could not reach content script on this tab', err);
+  }
+});
