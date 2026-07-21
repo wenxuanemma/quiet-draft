@@ -34,7 +34,11 @@ async function loadSettings() {
   apiKeyInput.value = data.apiKey || '';
   modelNameInput.value = data.modelName || DEFAULT_MODELS[providerSelect.value];
   if (data.docTitle) docTitle.textContent = data.docTitle;
-  if (data.docContent) editor.innerHTML = data.docContent;
+  if (data.docContent) {
+    editor.innerHTML = data.docContent;
+  } else {
+    editor.textContent = '> ';
+  }
 
   decoyTextInput.value = data.decoyText || '';
   autoArmToggle.checked = !!data.autoArmOnBlur;
@@ -150,10 +154,10 @@ async function runGeneration(prompt, line) {
 
   try {
     const result = await callAI(settings.provider, settings.apiKey, settings.modelName, prompt);
-    insertTextAtCaret('\n' + result);
+    insertTextAtCaret('\n' + result + '\n\n> ');
     flashStatus('');
   } catch (err) {
-    insertTextAtCaret(`\n[生成失败：${err.message}]`);
+    insertTextAtCaret(`\n[生成失败：${err.message}]\n\n> `);
     flashStatus('生成失败', true);
     setTimeout(() => flashStatus(''), 2500);
   }
@@ -298,4 +302,8 @@ window.addEventListener('focus', () => {
 // ---------- Init ----------
 loadSettings().then(() => {
   editor.focus();
+  // Place caret at the end so a fresh "> " document is ready to type into.
+  const sel = window.getSelection();
+  sel.selectAllChildren(editor);
+  sel.collapseToEnd();
 });

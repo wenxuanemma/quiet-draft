@@ -11,12 +11,16 @@ chrome.commands.onCommand.addListener(async (command) => {
   await chrome.storage.local.set({ panicActive: !panicActive });
 });
 
-// Clicking the toolbar icon on a claude.ai tab toggles the document
-// overlay for that specific tab. We key state by tab id (not global)
-// since you likely want the overlay off in other tabs/windows even
-// while it's on in one claude.ai conversation.
+// Clicking the toolbar icon on a supported AI site's tab toggles the
+// document overlay for that specific tab. We key state by tab id (not
+// global) since you likely want the overlay off in other tabs/windows
+// even while it's on in one conversation.
+const SUPPORTED_HOSTS = ['claude.ai', 'chatgpt.com', 'gemini.google.com'];
+
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.url || !tab.url.startsWith('https://claude.ai/')) return;
+  if (!tab.url) return;
+  const isSupported = SUPPORTED_HOSTS.some((host) => tab.url.startsWith(`https://${host}/`));
+  if (!isSupported) return;
   if (!tab.id) return;
 
   try {
