@@ -100,20 +100,78 @@ function flashStatus(msg, persist = false) {
 }
 
 // ---------- Prompt detection + generation ----------
-// A "prompt line" is any line in the current block starting with ">"
-function getCurrentLineText(range) {
-  // Walk back from caret to find the start of the current line within the editor's plain text
+// Caret position is tracked as a single integer — the character offset
+// into editor.textContent — rather than a specific (node, localOffset)
+// pair. Tracking a specific node breaks because the browser doesn't
+// always anchor selection inside a Text node: after our own
+// insertTextAtCaret() calls (and in a few other cases), the selection
+// anchor can legitimately BE the container <div> itself, with the
+// "offset" meaning "child index" rather than "character index". Mixing
+// those two meanings is exactly what caused the crash. Working in plain
+// global character offsets and only touching real DOM nodes at the
+// point we actually set/read the Selection sidesteps that entirely.
+
+function getGlobalCaretOffset() {
   const sel = window.getSelection();
   if (!sel.rangeCount) return null;
-  const node = sel.anchorNode;
-  const text = node.textContent || '';
-  const offset = sel.anchorOffset;
-  const beforeCaret = text.slice(0, offset);
+  if (!editor.contains(sel.anchorNode)) return null;
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.setEnd(sel.anchorNode, sel.anchorOffset);
+  return range.toString().length;
+}
+
+function setGlobalCaretOffset(targetOffset) {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let node;
+  let accumulated = 0;
+  while ((node = walker.nextNode())) {
+    const len = node.textContent.length;
+    if (accumulated + len >= targetOffset) {
+      const range = document.createRange();
+      range.setStart(node, targetOffset - accumulated);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    accumulated += len;
+  }
+  // Fell off the end (e.g. targetOffset === editor.textContent.length
+  // exactly, or editor has no text nodes at all) — just go to the end.
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function insertTextAtGlobalOffset(targetOffset, text) {
+  setGlobalCaretOffset(targetOffset);
+  const sel = window.getSelection();
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const textNode = document.createTextNode(text);
+  range.insertNode(textNode);
+  range.setStartAfter(textNode);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// A "prompt line" is any line in the current block starting with ">"
+function getCurrentLineInfo() {
+  const caretOffset = getGlobalCaretOffset();
+  if (caretOffset === null) return null;
+  const text = editor.textContent || '';
+  const beforeCaret = text.slice(0, caretOffset);
   const lineStart = beforeCaret.lastIndexOf('\n') + 1;
-  const afterCaret = text.slice(offset);
+  const afterCaret = text.slice(caretOffset);
   const lineEndRel = afterCaret.indexOf('\n');
-  const lineEnd = lineEndRel === -1 ? text.length : offset + lineEndRel;
-  return { node, lineStart, lineEnd, full: text.slice(lineStart, lineEnd) };
+  const lineEnd = lineEndRel === -1 ? text.length : caretOffset + lineEndRel;
+  return { lineStart, lineEnd, full: text.slice(lineStart, lineEnd) };
 }
 
 editor.addEventListener('keydown', async (e) => {
@@ -122,7 +180,7 @@ editor.addEventListener('keydown', async (e) => {
 
   e.preventDefault();
 
-  const line = getCurrentLineText();
+  const line = getCurrentLineInfo();
   if (!line) return;
   const trimmed = line.full.trim();
 
@@ -148,42 +206,18 @@ async function runGeneration(prompt, line) {
   flashStatus('生成中…', true);
 
   // Keep the "> ..." prompt line as-is; insert the result after it.
-  const node = line.node;
   const insertOffset = line.lineEnd;
-  placeCaretAtOffset(node, insertOffset);
 
   try {
     const result = await callAI(settings.provider, settings.apiKey, settings.modelName, prompt);
-    insertTextAtCaret('\n' + result + '\n\n> ');
+    insertTextAtGlobalOffset(insertOffset, '\n' + result + '\n\n> ');
     flashStatus('');
   } catch (err) {
-    insertTextAtCaret(`\n[生成失败：${err.message}]\n\n> `);
+    insertTextAtGlobalOffset(insertOffset, `\n[生成失败：${err.message}]\n\n> `);
     flashStatus('生成失败', true);
     setTimeout(() => flashStatus(''), 2500);
   }
   scheduleSave();
-}
-
-function placeCaretAtOffset(node, offset) {
-  const range = document.createRange();
-  const sel = window.getSelection();
-  range.setStart(node, Math.min(offset, node.textContent.length));
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function insertTextAtCaret(text) {
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  range.deleteContents();
-  const textNode = document.createTextNode(text);
-  range.insertNode(textNode);
-  range.setStartAfter(textNode);
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
 }
 
 // ---------- AI provider calls ----------
@@ -303,7 +337,5 @@ window.addEventListener('focus', () => {
 loadSettings().then(() => {
   editor.focus();
   // Place caret at the end so a fresh "> " document is ready to type into.
-  const sel = window.getSelection();
-  sel.selectAllChildren(editor);
-  sel.collapseToEnd();
+  setGlobalCaretOffset(editor.textContent.length);
 });
