@@ -143,21 +143,17 @@ async function runGeneration(prompt, line) {
 
   flashStatus('生成中…', true);
 
-  // Replace the prompt line's text node content with placeholder, then stream/insert result
+  // Keep the "> ..." prompt line as-is; insert the result after it.
   const node = line.node;
-  const fullText = node.textContent;
-  const before = fullText.slice(0, line.lineStart);
-  const after = fullText.slice(line.lineEnd);
-
-  node.textContent = before + after; // remove the ">" prompt line itself
-  placeCaretAtOffset(node, before.length);
+  const insertOffset = line.lineEnd;
+  placeCaretAtOffset(node, insertOffset);
 
   try {
     const result = await callAI(settings.provider, settings.apiKey, settings.modelName, prompt);
-    insertTextAtCaret(result);
+    insertTextAtCaret('\n' + result);
     flashStatus('');
   } catch (err) {
-    insertTextAtCaret(`[生成失败：${err.message}]`);
+    insertTextAtCaret(`\n[生成失败：${err.message}]`);
     flashStatus('生成失败', true);
     setTimeout(() => flashStatus(''), 2500);
   }

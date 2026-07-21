@@ -18,11 +18,9 @@
 //                  text after generation completes.
 // ============================================================
 const SELECTORS = {
-  // Confirmed via DevTools: the input is a ProseMirror rich-text editor.
-  // The <p> child carries a stable data-placeholder attribute even after
-  // typing (ProseMirror keeps it, just hides it via CSS), so we anchor on
-  // that and walk up to the actual contenteditable root.
-  inputPlaceholderText: 'Write a message…',
+  // Confirmed via DevTools: stable data-testid directly on the
+  // contenteditable ProseMirror/Tiptap input element.
+  input: '[data-testid="chat-input"]',
   sendButton: 'button[aria-label="Send message"]', // confirmed
   stopButton: 'button[aria-label="Stop response"]', // confirmed
   lastMessage: '.standard-markdown' // confirmed — wraps just the rendered reply text, excludes status/thinking blurbs
@@ -148,10 +146,7 @@ function flashStatus(msg, persist = false) {
 }
 
 function findInput() {
-  const placeholderP = Array.from(document.querySelectorAll('p[data-placeholder]'))
-    .find(p => p.getAttribute('data-placeholder') === SELECTORS.inputPlaceholderText);
-  if (!placeholderP) return null;
-  return placeholderP.closest('[contenteditable="true"]');
+  return document.querySelector(SELECTORS.input);
 }
 function findSendButton() {
   return document.querySelector(SELECTORS.sendButton);
@@ -295,19 +290,24 @@ async function handleEditorKeydown(e) {
   if (!prompt) return;
 
   const node = line.node;
-  const fullText = node.textContent;
-  const before = fullText.slice(0, line.lineStart);
-  const after = fullText.slice(line.lineEnd);
-  node.textContent = before + after;
-  placeCaretAtOffset(node, before.length);
+  const insertOffset = line.lineEnd; // keep the "> ..." line as-is; insert after it
+  placeCaretAtOffset(node, insertOffset);
 
   flashStatus('生成中…', true);
   try {
     const result = await relayPromptToClaudeAI(prompt);
-    insertTextAtCaret(result);
+    // Focusing the real claude.ai input during the relay moved the
+    // browser's one global selection/caret there. Reclaim both before
+    // inserting, or the result silently lands in the real input instead
+    // of our overlay.
+    editorEl.focus();
+    placeCaretAtOffset(node, insertOffset);
+    insertTextAtCaret('\n' + result);
     flashStatus('');
   } catch (err) {
-    insertTextAtCaret(`[生成失败：${err.message}]`);
+    editorEl.focus();
+    placeCaretAtOffset(node, insertOffset);
+    insertTextAtCaret(`\n[生成失败：${err.message}]`);
     flashStatus('生成失败', true);
     setTimeout(() => flashStatus(''), 2500);
   }
